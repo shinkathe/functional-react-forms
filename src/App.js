@@ -25,6 +25,11 @@ export default function App() {
     visible ? <div>Moi</div> : <div>Ei</div>;
 
   const reset$ = flyd.stream();
+  const notifyOnNameChange$ = flyd.stream();
+
+  flyd.on((value) => {
+    console.log("Value change reported outside", value);
+  }, notifyOnNameChange$);
 
   return (
     <div className="App">
@@ -41,12 +46,14 @@ export default function App() {
       </div>
 
       <span>Sample form</span> */}
-
       <button onClick={() => reset$(true)}>Test</button>
       <div>
         <Form value={{ name: "Lari" }} reset$={reset$}>
           <TextInput accessor={["name"]}></TextInput>
-          <TextInput accessor={["test"]}></TextInput>
+          <TextInput
+            accessor={["test"]}
+            notify$={notifyOnNameChange$}
+          ></TextInput>
         </Form>
       </div>
     </div>

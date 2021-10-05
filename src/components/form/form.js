@@ -1,10 +1,8 @@
-import { TextInput } from "../text-input/text-input";
-import { Bind, useStream } from "../s-utils/s-utils";
+import { useStream } from "../s-utils/s-utils";
 import { initFormState } from "../form/form-actions";
 import React from "react";
 import * as R from "ramda";
 import flyd from "flyd";
-import filter from "flyd/module/filter";
 import skip from "flyd-skip";
 
 export const getHtmlEventValue = (e) => {
@@ -38,10 +36,10 @@ const Field = ({
   formValues$,
   setFormValueAction$,
   reset$,
+  onValueChanged$,
   children,
   accessor,
 }) => {
-  console.log("field binds", reset$);
   const initialValue = R.view(R.lensPath(accessor), formValues$());
   const onChangeStream$ = flyd.stream(initialValue);
   const valueStream$ = flyd.map(getHtmlEventValue, onChangeStream$);
@@ -49,6 +47,7 @@ const Field = ({
   // Sync any input values onto the higher order formvalues
   flyd.on(() => {
     setFormValueAction$(R.assoc(accessor, valueStream$()));
+    onValueChanged$?.(valueStream$());
   }, valueStream$);
 
   flyd.on(() => {
@@ -79,6 +78,14 @@ const recursiveMap = (children, fn) => {
   });
 };
 
+// use cases:
+// array values
+// validation
+// reset form X
+// set single value from outside
+// dependant state from the outside X
+// form dirty & touched state atomic
+
 export const Form = ({ value, children, reset$ }) => {
   const { setFormValueAction$, formState$ } = initFormState(value, reset$);
 
@@ -87,12 +94,15 @@ export const Form = ({ value, children, reset$ }) => {
       <form>
         {recursiveMap(children, (child) => {
           const accessor = child.props.accessor;
+          const onValueChanged$ = child.props.onValueChanged$;
+
           return !R.isEmpty(accessor) ? (
             <Field
               reset$={reset$}
               formValues$={formState$}
               setFormValueAction$={setFormValueAction$}
               accessor={accessor}
+              onValueChanged$={onValueChanged$}
             >
               {child}
             </Field>
