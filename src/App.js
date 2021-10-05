@@ -1,25 +1,54 @@
-import logo from './logo.svg';
-import './App.css';
+import React from "react";
+import { initSample } from "./components/sample/sample-actions";
+import { sampleIncrement } from "./components/sample/sample-actions";
+import { initTimer } from "./components/timer/timer";
+import { initMonitor } from "./components/monitor/monitor-actions";
+import { Form } from "./components/form/form";
+import { TextInput } from "./components/text-input/text-input";
+import flyd from "flyd";
 
-function App() {
+export default function App() {
+  const _appState = {
+    ...initSample(),
+    ...initTimer({ count: 0 }, sampleIncrement, 1000, "timer"),
+    ...initTimer({ count: 0 }, sampleIncrement, 10, "test"),
+  };
+
+  const appState = {
+    ..._appState,
+    ...initMonitor(_appState),
+  };
+
+  window.appState = appState;
+
+  const TestVisible = ({ visible }) =>
+    visible ? <div>Moi</div> : <div>Ei</div>;
+
+  const reset$ = flyd.stream();
+
   return (
     <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+      {/* <Bind stream={appState.sampleState} view={SampleCounter} />
+      <button onClick={() => appState.incrementAction(sampleIncrement)}>
+        Test
+      </button>
+      <div>
+        <Bind stream={appState.timer} view={SampleCounter} />
+      </div>
+
+      <div>
+        <Bind stream={appState.monitorState} view={TestVisible} />
+      </div>
+
+      <span>Sample form</span> */}
+
+      <button onClick={() => reset$(true)}>Test</button>
+      <div>
+        <Form value={{ name: "Lari" }} reset$={reset$}>
+          <TextInput accessor={["name"]}></TextInput>
+          <TextInput accessor={["test"]}></TextInput>
+        </Form>
+      </div>
     </div>
   );
 }
-
-export default App;
