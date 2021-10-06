@@ -6,6 +6,8 @@ import { initMonitor } from "./components/monitor/monitor-actions";
 import { Form } from "./components/form/form";
 import { TextInput } from "./components/text-input/text-input";
 import flyd from "flyd";
+import * as R from "ramda";
+import { ValidateOn } from "./components/form/form-validation";
 
 export default function App() {
   const _appState = {
@@ -21,39 +23,42 @@ export default function App() {
 
   window.appState = appState;
 
-  const TestVisible = ({ visible }) =>
-    visible ? <div>Moi</div> : <div>Ei</div>;
-
   const reset$ = flyd.stream();
-  const notifyOnNameChange$ = flyd.stream();
 
-  flyd.on((value) => {
-    console.log("Value change reported outside", value);
+  const validationFnExample = (value) => {
+    if (value === "test") return true;
+    return "Invalid result";
+  };
+
+  const notifyOnNameChange$ = flyd.stream();
+  flyd.on((n) => {
+    console.log("name changed", n);
   }, notifyOnNameChange$);
+
+  const nameChanged$ = flyd.stream();
+  const testChanged$ = flyd.stream();
+  const formChanged$ = flyd.stream();
+
+  const errorView = (error) =>
+    R.is(Boolean, error) ? <div>moi</div> : <div>{error}</div>;
 
   return (
     <div className="App">
-      {/* <Bind stream={appState.sampleState} view={SampleCounter} />
-      <button onClick={() => appState.incrementAction(sampleIncrement)}>
-        Test
-      </button>
-      <div>
-        <Bind stream={appState.timer} view={SampleCounter} />
-      </div>
-
-      <div>
-        <Bind stream={appState.monitorState} view={TestVisible} />
-      </div>
-
-      <span>Sample form</span> */}
       <button onClick={() => reset$(true)}>Test</button>
       <div>
-        <Form value={{ name: "Lari" }} reset$={reset$}>
-          <TextInput accessor={["name"]}></TextInput>
-          <TextInput
-            accessor={["test"]}
-            notify$={notifyOnNameChange$}
-          ></TextInput>
+        <Form value={{ name: "Lari" }} reset$={reset$} onChange$={formChanged$}>
+          <ValidateOn validatorFn={validationFnExample} as={errorView}>
+            <label htmlFor="hep">Testi</label>
+            <TextInput
+              id="hep"
+              accessor={["name"]}
+              onValueChanged$={nameChanged$}
+            />
+          </ValidateOn>
+
+          <ValidateOn validatorFn={validationFnExample} as={errorView}>
+            <TextInput accessor={["test"]} onValueChanged$={testChanged$} />
+          </ValidateOn>
         </Form>
       </div>
     </div>

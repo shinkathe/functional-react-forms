@@ -6,7 +6,6 @@ import flyd from "flyd";
 import skip from "flyd-skip";
 
 export const getHtmlEventValue = (e) => {
-  console.log("get html event value", e);
   // If we're dealing with a pure HTML element, it will have a type
   const type = R.path(["target", "type"], e);
   const getHtmlElementValue = () => {
@@ -23,7 +22,7 @@ export const getHtmlEventValue = (e) => {
 };
 
 // Wrap creates the listener for the valuestream
-const Wrap = ({ onChangeStream$, valueStream$, children }) => {
+const UpdateOn = ({ onChangeStream$, valueStream$, children }) => {
   const value = useStream(valueStream$);
   return React.cloneElement(children, {
     onChange$: onChangeStream$,
@@ -37,6 +36,7 @@ const Field = ({
   setFormValueAction$,
   reset$,
   onValueChanged$,
+  validationListener$,
   children,
   accessor,
 }) => {
@@ -48,6 +48,7 @@ const Field = ({
   flyd.on(() => {
     setFormValueAction$(R.assoc(accessor, valueStream$()));
     onValueChanged$?.(valueStream$());
+    validationListener$?.(valueStream$());
   }, valueStream$);
 
   flyd.on(() => {
@@ -56,9 +57,9 @@ const Field = ({
   }, skip(0, reset$));
 
   return (
-    <Wrap onChangeStream$={onChangeStream$} valueStream$={valueStream$}>
+    <UpdateOn onChangeStream$={onChangeStream$} valueStream$={valueStream$}>
       {children}
-    </Wrap>
+    </UpdateOn>
   );
 };
 
@@ -86,8 +87,11 @@ const recursiveMap = (children, fn) => {
 // dependant state from the outside X
 // form dirty & touched state atomic
 
-export const Form = ({ value, children, reset$ }) => {
+export const Form = (props) => {
+  const { value, children, reset$, onChange$ } = props;
   const { setFormValueAction$, formState$ } = initFormState(value, reset$);
+
+  flyd.map(onChange$, formState$);
 
   const View = ({ children }) => {
     return (
@@ -95,14 +99,17 @@ export const Form = ({ value, children, reset$ }) => {
         {recursiveMap(children, (child) => {
           const accessor = child.props.accessor;
           const onValueChanged$ = child.props.onValueChanged$;
+          const validationListener$ = child.props.validationListener$;
 
-          return !R.isEmpty(accessor) ? (
+          return !R.isNil(accessor) ? (
             <Field
               reset$={reset$}
               formValues$={formState$}
               setFormValueAction$={setFormValueAction$}
               accessor={accessor}
               onValueChanged$={onValueChanged$}
+              validationListener$={validationListener$}
+              {...child.props}
             >
               {child}
             </Field>
